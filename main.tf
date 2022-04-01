@@ -25,7 +25,7 @@ resource "aws_s3_bucket_versioning" "this" {
 resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
   bucket = aws_s3_bucket.this.id
 
-  dynamic "rule"{
+  dynamic "rule" {
     for_each = var.versioning_enabled == true && var.enable_centralized_logging == true ? [true] : []
     content {
       apply_server_side_encryption_by_default {
