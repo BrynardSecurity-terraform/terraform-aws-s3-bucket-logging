@@ -7,16 +7,16 @@ resource "aws_s3_bucket" "this" {
 resource "aws_s3_bucket_versioning" "this" {
   bucket = aws_s3_bucket.this
   
-  dynamic "versioning_enabled" {
+  dynamic "versioning_configuration" {
     for_each = var.versioning_enabled == true ? [true] : []
-    versioning_configuration {
+    content {
       status = "Enabled"
     }
   }
 
-  dynamic "versioning_disabled" {
+  dynamic "versioning_configuration" {
     for_each = var.versioning_enabled == true ? [] : [true]
-    versioning_configuration {
+    content {
       status = "Disabled"
     }
   }
