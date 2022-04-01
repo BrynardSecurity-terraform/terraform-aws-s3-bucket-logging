@@ -5,7 +5,7 @@ resource "aws_s3_bucket" "this" {
 }
 
 resource "aws_s3_bucket_versioning" "this" {
-  bucket = aws_s3_bucket.this
+  bucket = aws_s3_bucket.this.id
 
   dynamic "versioning_configuration" {
     for_each = var.versioning_enabled == true ? [true] : []
@@ -23,7 +23,7 @@ resource "aws_s3_bucket_versioning" "this" {
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
-  bucket = aws_s3_bucket.this
+  bucket = aws_s3_bucket.this.id
 
   dynamic "rule"{
     for_each = var.versioning_enabled == true && var.enable_centralized_logging == true ? [true] : []
@@ -36,7 +36,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "this" {
-  bucket = aws_s3_bucket.this
+  bucket = aws_s3_bucket.this.id
 
   dynamic "rule" {
     for_each = var.versioning_enabled == true && var.enable_centralized_logging == true ? [true] : []
@@ -91,7 +91,7 @@ resource "aws_s3_bucket_replication_configuration" "this" {
 }
 
 resource "aws_s3_bucket_acl" "this" {
-  bucket = aws_s3_bucket.this
+  bucket = aws_s3_bucket.this.id
   acl = "log-delivery-write"
 }
 
