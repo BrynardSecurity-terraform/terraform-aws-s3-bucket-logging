@@ -6,7 +6,7 @@ resource "aws_s3_bucket" "this" {
 
 resource "aws_s3_bucket_versioning" "this" {
   bucket = aws_s3_bucket.this
-  
+
   dynamic "versioning_configuration" {
     for_each = var.versioning_enabled == true ? [true] : []
     content {
@@ -41,38 +41,33 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
   dynamic "rule" {
     for_each = var.versioning_enabled == true && var.enable_centralized_logging == true ? [true] : []
     content {
-      prevent_destroy = true
-    }
-  }
+      id = "Logs"
 
-  dynamic "rule" {
-    for_each = var.versioning_enabled == true && var.enable_centralized_logging == true ? [true] : []
-    content {
-      rule {
-        id = "Logs"
-        enabled = true
-        filter {
+      expiration {
+          days = var.transition_expiration
+      }
+
+      filter {
           and {
-            prefix = "/"
+              prefix = "/"
           }
-          transition {
-            noncurrent_days = var.transition_IA
-            storage_class = "STANDARD_ID"
-          }
+      }
 
-          transition {
-            noncurrent_days = var.transition_glacier
-            storage_class = "GLACIER"
-          }
+      status = "Enabled"
 
-          expiration {
-            days = var.transition_expiration
-          }
-        }
+      transition {
+          days = var.transition_IA
+          storage_class = "STANDARD_ID"
+      }
+
+      transition {
+          days = var.transition_glacier
+          storage_class = "GLACIER"
       }
     }
   }
 }
+
 
 resource "aws_s3_bucket_replication_configuration" "this" {
   bucket = aws_s3_bucket.this.id
@@ -86,7 +81,7 @@ resource "aws_s3_bucket_replication_configuration" "this" {
       destination {
         bucket = "arn:aws:s3:::${var.s3_destination_bucket_name}"
         storage_class = var.replication_dest_storage_class
-        account_id = var.logging_account_id
+        account = var.logging_account_id
         access_control_translation {
           owner = "Destination"
         }
