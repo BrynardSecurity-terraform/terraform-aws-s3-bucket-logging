@@ -38,15 +38,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
   
   rule {
     id = "Logs"
+    prefix = "/"
 
     expiration {
       days = var.transition_expiration
-    }
-
-    filter {
-      and {
-        prefix = "/"
-      }
     }
 
     status = "Enabled"
