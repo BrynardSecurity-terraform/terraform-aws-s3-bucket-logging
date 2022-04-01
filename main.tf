@@ -112,7 +112,7 @@ data "aws_iam_policy_document" "bucket_policy" {
       type = "AWS"
     }
     resources = [
-      "${aws_s3_bucket.bucket.arn}/elb/*"
+      "${aws_s3_bucket.this.arn}/elb/*"
     ]
     sid = "EnableELBLogging"
   }
@@ -128,7 +128,7 @@ data "aws_iam_policy_document" "bucket_policy" {
       type = "Service"
     }
     resources = [
-      aws_s3_bucket.bucket.arn
+      aws_s3_bucket.this.arn
     ]
     sid = "EnableConfigGetACL"
   }
@@ -144,8 +144,8 @@ data "aws_iam_policy_document" "bucket_policy" {
       type = "Service"
     }
     resources = [
-      "${aws_s3_bucket.bucket.arn}/aws-config/*",
-      "${aws_s3_bucket.bucket.arn}/config/*"
+      "${aws_s3_bucket.this.arn}/aws-config/*",
+      "${aws_s3_bucket.this.arn}/config/*"
     ]
     condition {
       test     = "StringEquals"
@@ -176,20 +176,20 @@ data "aws_iam_policy_document" "bucket_policy" {
       type = "AWS"
     }
     resources = [
-      aws_s3_bucket.bucket.arn,
-      "${aws_s3_bucket.bucket.arn}/*"
+      aws_s3_bucket.this.arn,
+      "${aws_s3_bucket.this.arn}/*"
     ]
     sid = "DenyUnsecuredTransport"
   }
 }
 
 resource "aws_s3_bucket_policy" "bucket_policy_attachment" {
-  bucket = aws_s3_bucket.bucket.id
+  bucket = aws_s3_bucket.this.id
   policy = data.aws_iam_policy_document.bucket_policy.json
 }
 
 resource "aws_s3_bucket_public_access_block" "bucket" {
-  bucket = aws_s3_bucket.bucket.id
+  bucket = aws_s3_bucket.this.id
 
   block_public_acls       = true
   ignore_public_acls      = true
