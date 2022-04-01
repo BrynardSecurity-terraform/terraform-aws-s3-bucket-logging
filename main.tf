@@ -28,12 +28,14 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
   dynamic "rule"{
     for_each = var.versioning_enabled == true && var.enable_centralized_logging == true ? [true] : []
     content {
+      apply_server_side_encryption_by_default {
         sse_algorithm = "AES256"
+      }
     }
   }
 }
 
-resource "aws_s3_bucket_lifecycle_rule" "this" {
+resource "aws_s3_bucket_lifecycle_configuration" "this" {
   bucket = aws_s3_bucket.this
 
   dynamic "rule" {
@@ -81,14 +83,13 @@ resource "aws_s3_bucket_replication_configuration" "this" {
     content {
       id = "${var.name_prefix}-replication${var.name_suffix}"
       status = "Enabled"
-    }
-
-    destination {
-      bucket = "arn:aws:s3:::${var.s3_destination_bucket_name}"
-      storage_class = var.replication_dest_storage_class
-      account_id = var.logging_account_id
-      access_control_translation {
-        owner = "Destination"
+      destination {
+        bucket = "arn:aws:s3:::${var.s3_destination_bucket_name}"
+        storage_class = var.replication_dest_storage_class
+        account_id = var.logging_account_id
+        access_control_translation {
+          owner = "Destination"
+        }
       }
     }
   }
