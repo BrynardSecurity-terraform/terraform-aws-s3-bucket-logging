@@ -1,64 +1,101 @@
-resource "aws_s3_bucket" "bucket" {
+resource "aws_s3_bucket" "this" {
   bucket = "${var.name_prefix}-logging${var.name_suffix}"
   acl    = "log-delivery-write"
+
+  tags = var.input_tags
+}
+
+resource "aws_s3_bucket_versioning" "this" {
+  bucket = aws_s3_bucket.this
   
-  versioning {
-    enabled = var.versioning_enabled
+  dynamic "versioning_enabled" {
+    for_each = var.versioning_enabled == true ? [true] : []
+    versioning_configuration {
+      status = "Enabled"
+    }
   }
-  
-  dynamic "replication_configuration" {
-    #If conditions are true enable versioning, if they're false do nothing
+
+  dynamic "versioning_disabled" {
+    for_each = var.versioning_enabled == true ? [] : [true]
+    versioning_configuration {
+      status = "Disabled"
+    }
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
+  bucket = aws_s3_bucket.this
+
+  dynamic "server_side_encryption_configuration"{
     for_each = var.versioning_enabled == true && var.enable_centralized_logging == true ? [true] : []
-    content {
-      role = var.iam_role_s3_replication_arn
-
-      rules {
-        id     = "${var.name_prefix}-replication${var.name_suffix}"
-        status = "Enabled"
-        destination {
-          bucket        = "arn:aws:s3:::${var.s3_destination_bucket_name}"
-          storage_class = var.replication_dest_storage_class
-          account_id    = var.logging_account_id
-          access_control_translation {
-            owner = "Destination"
-          }
-        }
-      }
-    }
-  }
-
-  lifecycle {
-    prevent_destroy = true
-  }
-  lifecycle_rule {
-    id      = "Logs"
-    prefix  = "/"
-    enabled = true
-
-    transition {
-      days          = var.transition_IA
-      storage_class = "STANDARD_IA"
-    }
-
-    transition {
-      days          = var.transition_glacier
-      storage_class = "GLACIER"
-    }
-
-    expiration {
-      days = var.transition_expiration
-    }
-  }
-
-  server_side_encryption_configuration {
-    rule {
-      apply_server_side_encryption_by_default {
+    server_side_encryption_configuration {
+      rule {
         sse_algorithm = "AES256"
       }
     }
   }
+}
 
-  tags = var.input_tags
+resource "aws_s3_bucket_lifecycle_rule" "this" {
+  bucket = aws_s3_bucket.this
+
+  dynamic "aws_s3_bucket_lifecycle_rule" {
+    for_each = var.versioning_enabled == true && var.enable_centralized_logging == true ? [true] : []
+    rule {
+      prevent_destroy = true
+    }
+    rule {
+      id = "Logs"
+      enabled = true
+
+      filter {
+        and {
+          prefix = "/"
+        }
+      }
+
+      transition {
+        noncurrent_days = var.transition_IA
+        storage_class = "STANDARD_ID"
+      }
+
+      transition {
+        noncurrent_days = var.transition_glacier
+        storage_class = "GLACIER"
+      }
+
+      expiration {
+        days = var.transition_expiration
+      }
+    }
+  }
+}
+
+resource "aws_s3_bucket_replication_configuration" "this" {
+  bucket = aws_s3_bucket.this.id
+  role = var.iam_role_s3_replication_arn
+
+  dynamic "aws_s3_bucket_replication_configuration" {
+    for_each = var.versioning_enabled == true && var.enable_centralized_logging == true ? [true] : []
+    rule {
+      id = "${var.name_prefix}-replication${var.name_suffix}"
+      status = "Enabled"
+    }
+
+    destination {
+      bucket = "arn:aws:s3:::${var.s3_destination_bucket_name}"
+      storage_class = var.replication_dest_storage_class
+      account_id = var.logging_account_id
+      access_control_translation {
+        owner = "Destination"
+      }
+    }
+  }
+}
+
+resource "aws_s3_bucket_acl" "this" {
+  bucket = aws_s3_bucket.this
+  acl = "log-delivery-write"
 }
 
 data "aws_elb_service_account" "elb_account" {}
