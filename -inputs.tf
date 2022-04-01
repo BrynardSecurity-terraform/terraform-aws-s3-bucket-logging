@@ -45,6 +45,18 @@ variable "enable_centralized_logging" {
   default     = false
 }
 
+variable "enable_replication" {
+  description = "Enable replication for logging bucket"
+  type        = bool
+  default     = false
+}
+
+variable "enable_server_side_encryption" {
+  description = "Enable server-side encryption"
+  type        = bool
+  default     = false
+}
+
 variable "s3_destination_bucket_name" {
   description = "Centralized Logging Bucket Name"
   type        = string
