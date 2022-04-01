@@ -25,12 +25,10 @@ resource "aws_s3_bucket_versioning" "this" {
 resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
   bucket = aws_s3_bucket.this
 
-  dynamic "server_side_encryption_configuration"{
+  dynamic "rule"{
     for_each = var.versioning_enabled == true && var.enable_centralized_logging == true ? [true] : []
-    server_side_encryption_configuration {
-      rule {
+    content {
         sse_algorithm = "AES256"
-      }
     }
   }
 }
@@ -38,33 +36,37 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
 resource "aws_s3_bucket_lifecycle_rule" "this" {
   bucket = aws_s3_bucket.this
 
-  dynamic "aws_s3_bucket_lifecycle_rule" {
+  dynamic "rule" {
     for_each = var.versioning_enabled == true && var.enable_centralized_logging == true ? [true] : []
-    rule {
+    content {
       prevent_destroy = true
     }
-    rule {
-      id = "Logs"
-      enabled = true
+  }
 
-      filter {
-        and {
-          prefix = "/"
+  dynamic "rule" {
+    for_each = var.versioning_enabled == true && var.enable_centralized_logging == true ? [true] : []
+    content {
+      rule {
+        id = "Logs"
+        enabled = true
+        filter {
+          and {
+            prefix = "/"
+          }
+          transition {
+            noncurrent_days = var.transition_IA
+            storage_class = "STANDARD_ID"
+          }
+
+          transition {
+            noncurrent_days = var.transition_glacier
+            storage_class = "GLACIER"
+          }
+
+          expiration {
+            days = var.transition_expiration
+          }
         }
-      }
-
-      transition {
-        noncurrent_days = var.transition_IA
-        storage_class = "STANDARD_ID"
-      }
-
-      transition {
-        noncurrent_days = var.transition_glacier
-        storage_class = "GLACIER"
-      }
-
-      expiration {
-        days = var.transition_expiration
       }
     }
   }
@@ -74,9 +76,9 @@ resource "aws_s3_bucket_replication_configuration" "this" {
   bucket = aws_s3_bucket.this.id
   role = var.iam_role_s3_replication_arn
 
-  dynamic "aws_s3_bucket_replication_configuration" {
+  dynamic "rule" {
     for_each = var.versioning_enabled == true && var.enable_centralized_logging == true ? [true] : []
-    rule {
+    content {
       id = "${var.name_prefix}-replication${var.name_suffix}"
       status = "Enabled"
     }
