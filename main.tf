@@ -23,72 +23,61 @@ resource "aws_s3_bucket_versioning" "this" {
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
+  count = var.enable_server_side_encryption ? 1 : 0
   bucket = aws_s3_bucket.this.id
-
-  dynamic "rule" {
-    for_each = var.versioning_enabled == true && var.enable_centralized_logging == true ? [true] : []
-    content {
-      rule {
-        apply_server_side_encryption_by_default {
-        sse_algorithm = "AES256"
-        }
-      }
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
     }
   }
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "this" {
+  count = var.versioning_enabled ? 1 : 0
   bucket = aws_s3_bucket.this.id
+  
+  rule {
+    id = "Logs"
 
-  dynamic "rule" {
-    for_each = var.versioning_enabled == true && var.enable_centralized_logging == true ? [true] : []
-    content {
-      id = "Logs"
+    expiration {
+      days = var.transition_expiration
+    }
 
-      expiration {
-          days = var.transition_expiration
+    filter {
+      and {
+        prefix = "/"
       }
+    }
 
-      filter {
-          and {
-              prefix = "/"
-          }
-      }
+    status = "Enabled"
 
-      status = "Enabled"
+    transition {
+      days = var.transition_IA
+      storage_class = "STANDARD_ID"
+    }
 
-      transition {
-          days = var.transition_IA
-          storage_class = "STANDARD_ID"
-      }
-
-      transition {
-          days = var.transition_glacier
-          storage_class = "GLACIER"
-      }
+    transition {
+      days = var.transition_glacier
+      storage_class = "GLACIER"
     }
   }
 }
 
 
 resource "aws_s3_bucket_replication_configuration" "this" {
+  count = var.enable_replication ? 1 : 0
   bucket = aws_s3_bucket.this.id
   role = var.iam_role_s3_replication_arn
 
-  dynamic "rule" {
-    for_each = var.versioning_enabled == true && var.enable_centralized_logging == true ? [true] : []
-    content {
-      rule {
-        id = "${var.name_prefix}-replication${var.name_suffix}"
-        status = "Enabled"
-        destination {
-          bucket = "arn:aws:s3:::${var.s3_destination_bucket_name}"
-          storage_class = var.replication_dest_storage_class
-          account = var.logging_account_id
-          access_control_translation {
-            owner = "Destination"
-          }
-        }
+  rule {
+    id = "${var.name_prefix}-replication${var.name_suffix}"
+    status = "Enabled"
+    destination {
+      bucket = "arn:aws:s3:::${var.s3_destination_bucket_name}"
+      storage_class = var.replication_dest_storage_class
+      account = var.logging_account_id
+      access_control_translation {
+        owner = "Destination"
       }
     }
   }
