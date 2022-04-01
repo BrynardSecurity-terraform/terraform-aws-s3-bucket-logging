@@ -28,8 +28,10 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
   dynamic "rule" {
     for_each = var.versioning_enabled == true && var.enable_centralized_logging == true ? [true] : []
     content {
-      apply_server_side_encryption_by_default {
+      rule {
+        apply_server_side_encryption_by_default {
         sse_algorithm = "AES256"
+        }
       }
     }
   }
@@ -76,14 +78,16 @@ resource "aws_s3_bucket_replication_configuration" "this" {
   dynamic "rule" {
     for_each = var.versioning_enabled == true && var.enable_centralized_logging == true ? [true] : []
     content {
-      id = "${var.name_prefix}-replication${var.name_suffix}"
-      status = "Enabled"
-      destination {
-        bucket = "arn:aws:s3:::${var.s3_destination_bucket_name}"
-        storage_class = var.replication_dest_storage_class
-        account = var.logging_account_id
-        access_control_translation {
-          owner = "Destination"
+      rule {
+        id = "${var.name_prefix}-replication${var.name_suffix}"
+        status = "Enabled"
+        destination {
+          bucket = "arn:aws:s3:::${var.s3_destination_bucket_name}"
+          storage_class = var.replication_dest_storage_class
+          account = var.logging_account_id
+          access_control_translation {
+            owner = "Destination"
+          }
         }
       }
     }
