@@ -1,6 +1,5 @@
 resource "aws_s3_bucket" "this" {
   bucket = "${var.name_prefix}-logging${var.name_suffix}"
-  acl    = "log-delivery-write"
 
   tags = var.input_tags
 }
