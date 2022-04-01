@@ -39,6 +39,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
   rule {
     id = "Logs"
 
+    expiration {
+      days = var.transition_expiration
+    }
+
     filter {
       and {
         prefix = "/"
@@ -55,10 +59,6 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
     transition {
       days = var.transition_glacier
       storage_class = "GLACIER"
-    }
-    
-    expiration {
-      days = var.transition_expiration
     }
   }
 }
